@@ -4,29 +4,6 @@ import (
 	generator "go-url-short/internal/shorten"
 )
 
-type ErrKeyAlreadyExists struct {
-	Err error
-}
-
-type ErrKeyNotFound struct {
-	Err error
-}
-
-func (e ErrKeyAlreadyExists) Error() string {
-	return "key already exists"
-}
-
-func (e ErrKeyNotFound) Error() string {
-	return "key Not Found"
-}
-
-type Store interface {
-	// Get returns the original URL for the given short key
-	Get(shortKey string) (string, error)
-	// Set saves the original URL and returns the short key
-	Set(originalURL string) (string, error)
-}
-
 type InMemStore struct {
 	urls map[string]string
 }
