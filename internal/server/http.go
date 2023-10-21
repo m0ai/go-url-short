@@ -10,13 +10,24 @@ import (
 
 type httpServer struct {
 	Log   *log.Logger
-	Store *store.InMemStore
+	Store store.Store
 }
 
-func newHTTPServer() *httpServer {
+func newHTTPServer(dbConfig store.DatabaseConfig) *httpServer {
+	var st store.Store
+
+	httpLog := log.New(log.Writer(), "HTTPSERVER:", log.LstdFlags)
+	if dbConfig.Name == "" {
+		st = store.NewInMemStore()
+		httpLog.Println("Using in-memory store")
+	} else {
+		st = store.NewPostgresStore(dbConfig)
+		httpLog.Println("Using postgres store")
+	}
+
 	return &httpServer{
-		Log:   log.New(log.Writer(), "httpServer", log.LstdFlags),
-		Store: store.NewInMemStore(),
+		Log:   httpLog,
+		Store: st,
 	}
 }
 
@@ -29,11 +40,11 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func NewHTTPServer(add, port string) *http.Server {
-	s := newHTTPServer()
+func NewHTTPServer(add, port string, dbConfig store.DatabaseConfig) *http.Server {
+	s := newHTTPServer(dbConfig)
 
 	r := mux.NewRouter()
-	r.Use(loggingMiddleware)
+	//r.Use(loggingMiddleware)
 	r.HandleFunc("/health", s.handleHealthCheck).Methods("GET")
 	r.HandleFunc("/shorten", s.handleShorten).Methods("POST")
 	r.HandleFunc("/s/{shortURL}", s.handleRedirect)
@@ -69,11 +80,12 @@ func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Internal server error"))
 		return
 	}
-	s.Log.Println(s.Store.Get(shortKey))
 	w.WriteHeader(http.StatusCreated)
 
-	result := fmt.Sprintf("http://localhost:8081/s/%s", shortKey)
-	s.Log.Println(result)
+	// TODO: Delete Hardcoded URL
+	result := fmt.Sprintf("http://localhost:8080/s/%s", shortKey)
+
+	s.Log.Printf("Shortened URL %s from %s", result, originalURL)
 	// TODO return json
 	w.Write([]byte(result))
 }

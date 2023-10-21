@@ -2,15 +2,18 @@ package store
 
 import (
 	generator "go-url-short/internal/shorten"
+	"log"
 )
 
 type InMemStore struct {
 	urls map[string]string
+	Log  *log.Logger
 }
 
 func NewInMemStore() *InMemStore {
 	return &InMemStore{
 		urls: make(map[string]string),
+		Log:  log.New(log.Writer(), "INMEMSTORE:", log.LstdFlags),
 	}
 }
 

@@ -8,3 +8,12 @@
 - [ ] postgresql 연결 및 store 구성
 - [ ] 62 진법 적용 
 - [ ] 운영 배포 (도메인, 서버, DB)
+
+```shell
+docker run --rm \
+    --name postgresql \
+    -p 5432:5432 \
+    -e POSTGRES_PASSWORD=mysecretpassword \
+    -e POSTGRES_DB=shorturl \
+    postgres
+```

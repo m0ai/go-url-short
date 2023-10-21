@@ -22,4 +22,5 @@ go.work
 
 .idea
 
+.env
 tmp/
