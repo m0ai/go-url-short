@@ -2,6 +2,7 @@ package shorten
 
 import (
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -16,7 +17,24 @@ func (e ErrInvalidID) Error() string {
 const base62charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const base62keyLength = len(base62charset)
 
-// GenerateBase62 generates a base62 string from an integer
+// ConvertRadix10 converts a integer from an base62 string
+func ConvertRadix10(shortKey string) (int64, error) {
+	var id int64 = 0
+
+	shortKey = reverse(shortKey)
+	for i, c := range shortKey {
+		index := strings.IndexRune(base62charset, c)
+		if index == -1 {
+			return 0, ErrInvalidID{fmt.Errorf("invalid character: %c", c)}
+		}
+		id += int64(index) * int64(math.Pow(float64(base62keyLength), float64(i)))
+
+	}
+
+	return id, nil
+}
+
+// GenerateBase62 converts a string from an integer
 func ConvertRadix62(id int64) string {
 	result := make([]string, 0)
 	var quotient, remainder int64 = id, 0

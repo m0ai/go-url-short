@@ -26,7 +26,7 @@ func (s InMemStore) Get(shortKey string) (string, error) {
 	var found bool
 
 	if originalURL, found = s.urls[shortKey]; !found {
-		return "", ErrKeyNotFound{}
+		return "", ErrKeyNotFound
 	}
 
 	return originalURL, nil
@@ -36,11 +36,11 @@ func (s InMemStore) Set(originalURL string) (string, error) {
 	shortKey := generator.GenerateRandomKey()
 
 	if shortKey, found := s.urls[shortKey]; found {
-		return shortKey, ErrKeyAlreadyExists{}
+		return shortKey, ErrKeyAlreadyExists
 	}
 
 	if _, err := s.Get(shortKey); err == nil {
-		return "", ErrKeyAlreadyExists{}
+		return "", ErrKeyAlreadyExists
 	}
 
 	s.urls[shortKey] = originalURL

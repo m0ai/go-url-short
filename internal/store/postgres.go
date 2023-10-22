@@ -42,17 +42,23 @@ func (s PostgresStore) DbClose() {
 }
 
 func (s PostgresStore) Get(shortKey string) (string, error) {
-	row := s.db.QueryRow("SELECT * FROM shorturl WHERE short = $1", shortKey)
-	var id int
-	var originalURL string
-	err := row.Scan(&id, &shortKey, &originalURL)
-	s.Log.Println("originalURL: ", originalURL)
-
+	k, err := generator.ConvertRadix10(shortKey)
 	if err != nil {
-		return "", ErrKeyNotFound{err}
+		s.Log.Println("Error converting radix62 to radix10: ", err)
 	}
 
-	return originalURL, nil
+	var url string
+	row := s.db.QueryRow("SELECT url FROM shorturl WHERE id = $1", k)
+	if err := row.Scan(&url); err != nil {
+		s.Log.Println("Error querying database: ", err, k)
+		return "", ErrKeyNotFound
+	}
+
+	if err != nil && err == sql.ErrNoRows {
+		return "", ErrKeyNotFound
+	}
+
+	return url, nil
 }
 
 func (s PostgresStore) Set(originalURL string) (string, error) {
@@ -62,20 +68,20 @@ func (s PostgresStore) Set(originalURL string) (string, error) {
 
 	if err != nil && err != sql.ErrNoRows {
 		s.Log.Println("Error checking if key exists: ", err)
-		return "", ErrKeyAlreadyExists{err}
+		return "", ErrKeyAlreadyExists
 	}
 
 	if k != 0 {
-		s.Log.Println("Key already exists")
+		s.Log.Println("Key already exists", k)
 		return generator.ConvertRadix62(k), nil
 	}
 
-	err = s.db.QueryRow("INSERT INTO shorturl (url, short) VALUES ($1,$2) RETURNING id", originalURL).Scan(&k)
+	err = s.db.QueryRow("INSERT INTO shorturl (url) VALUES ($1) RETURNING id", originalURL).Scan(&k)
 	if err != nil {
 		s.Log.Println("Error inserting into database: ", err)
-		return "", ErrKeyAlreadyExists{err}
+		return "", ErrKeyAlreadyExists
 	}
-	s.Log.Println("Inserted into database: ", k)
 
+	s.Log.Println("Inserted into database: ", k)
 	return generator.ConvertRadix62(k), nil
 }

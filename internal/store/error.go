@@ -1,17 +1,6 @@
 package store
 
-type ErrKeyAlreadyExists struct {
-	Err error
-}
+import "errors"
 
-type ErrKeyNotFound struct {
-	Err error
-}
-
-func (e ErrKeyAlreadyExists) Error() string {
-	return "key already exists"
-}
-
-func (e ErrKeyNotFound) Error() string {
-	return "key Not Found"
-}
+var ErrKeyAlreadyExists = errors.New("key already exists")
+var ErrKeyNotFound = errors.New("key not found")

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
 	"go-url-short/internal/store"
@@ -99,14 +100,22 @@ func (s *httpServer) handleRedirect(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Bad request, missing shortURL"))
 		return
 	}
+
+	log.Println("shortURL: ", shortURL)
 	originalURL, err := s.Store.Get(shortURL)
 
-	s.Log.Println(originalURL, err)
+	if err != nil && errors.Is(store.ErrKeyNotFound, err) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Not found"))
+		return
+	}
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error, Could not get original URL"))
 		return
 	}
 
+	s.Log.Printf("Redirecting key(%s) to %s", shortURL, originalURL)
 	http.Redirect(w, r, originalURL, http.StatusPermanentRedirect)
 }
