@@ -8,7 +8,7 @@ import (
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const keyLength = 6
 
-func GenerateShortKey() string {
+func GenerateRandomKey() string {
 	// rand.Seed() was deprecated
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	shortKey := make([]byte, keyLength)

@@ -70,7 +70,7 @@ func (s PostgresStore) Set(originalURL string) (string, error) {
 		return shortkey, nil
 	}
 
-	shortKey := generator.GenerateShortKey()
+	shortKey := generator.GenerateRandomKey()
 	err = s.db.QueryRow("INSERT INTO shorturl (url, short) VALUES ($1,$2) RETURNING short", originalURL, shortKey).Scan(&shortKey)
 	if err != nil {
 		s.Log.Println("Error inserting into database: ", err)

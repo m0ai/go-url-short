@@ -33,7 +33,7 @@ func (s InMemStore) Get(shortKey string) (string, error) {
 }
 
 func (s InMemStore) Set(originalURL string) (string, error) {
-	shortKey := generator.GenerateShortKey()
+	shortKey := generator.GenerateRandomKey()
 
 	if shortKey, found := s.urls[shortKey]; found {
 		return shortKey, ErrKeyAlreadyExists{}
