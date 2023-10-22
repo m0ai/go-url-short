@@ -57,25 +57,25 @@ func (s PostgresStore) Get(shortKey string) (string, error) {
 
 func (s PostgresStore) Set(originalURL string) (string, error) {
 	// Check if the key already exists using orignalURL
-	var shortkey string
-	err := s.db.QueryRow("SELECT short FROM shorturl WHERE url = $1 LIMIT 1", originalURL).Scan(&shortkey)
+	var k int64
+	err := s.db.QueryRow("SELECT id FROM shorturl WHERE url = $1 LIMIT 1", originalURL).Scan(&k)
 
 	if err != nil && err != sql.ErrNoRows {
 		s.Log.Println("Error checking if key exists: ", err)
 		return "", ErrKeyAlreadyExists{err}
 	}
 
-	if shortkey != "" {
+	if k != 0 {
 		s.Log.Println("Key already exists")
-		return shortkey, nil
+		return generator.ConvertRadix62(k), nil
 	}
 
-	shortKey := generator.GenerateRandomKey()
-	err = s.db.QueryRow("INSERT INTO shorturl (url, short) VALUES ($1,$2) RETURNING short", originalURL, shortKey).Scan(&shortKey)
+	err = s.db.QueryRow("INSERT INTO shorturl (url, short) VALUES ($1,$2) RETURNING id", originalURL).Scan(&k)
 	if err != nil {
 		s.Log.Println("Error inserting into database: ", err)
 		return "", ErrKeyAlreadyExists{err}
 	}
+	s.Log.Println("Inserted into database: ", k)
 
-	return shortKey, nil
+	return generator.ConvertRadix62(k), nil
 }
