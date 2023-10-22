@@ -35,7 +35,7 @@ func main() {
 		if err = s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalln("Could not listen on ", port, " ", err)
 		}
-	}
+	}()
 
 	<-quit
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
