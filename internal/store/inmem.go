@@ -16,6 +16,10 @@ func NewInMemStore() *InMemStore {
 		Log:  log.New(log.Writer(), "INMEMSTORE:", log.LstdFlags),
 	}
 }
+func (s InMemStore) DbClose() {
+	s.Log.Println("Closing database connection")
+	s.urls = make(map[string]string)
+}
 
 func (s InMemStore) Get(shortKey string) (string, error) {
 	var originalURL string

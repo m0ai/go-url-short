@@ -5,4 +5,6 @@ type Store interface {
 	Get(shortKey string) (string, error)
 	// Set saves the original URL and returns the short key
 	Set(originalURL string) (string, error)
+	// DbClose closes the database connection
+	DbClose()
 }

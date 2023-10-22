@@ -3,11 +3,9 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/lib/pq"
 	generator "go-url-short/internal/shorten"
 	"log"
-	"testing"
-
-	_ "github.com/lib/pq"
 )
 
 type DatabaseConfig struct {
@@ -38,12 +36,18 @@ func NewPostgresStore(config DatabaseConfig) *PostgresStore {
 	}
 }
 
+func (s PostgresStore) DbClose() {
+	s.Log.Println("Closing database connection")
+	s.db.Close()
+}
+
 func (s PostgresStore) Get(shortKey string) (string, error) {
-	defer s.db.Close()
 	row := s.db.QueryRow("SELECT * FROM shorturl WHERE short = $1", shortKey)
 	var id int
 	var originalURL string
 	err := row.Scan(&id, &shortKey, &originalURL)
+	s.Log.Println("originalURL: ", originalURL)
+
 	if err != nil {
 		return "", ErrKeyNotFound{err}
 	}
@@ -52,10 +56,24 @@ func (s PostgresStore) Get(shortKey string) (string, error) {
 }
 
 func (s PostgresStore) Set(originalURL string) (string, error) {
-	defer s.db.Close()
+	// Check if the key already exists using orignalURL
+	var shortkey string
+	err := s.db.QueryRow("SELECT short FROM shorturl WHERE url = $1 LIMIT 1", originalURL).Scan(&shortkey)
+
+	if err != nil && err != sql.ErrNoRows {
+		s.Log.Println("Error checking if key exists: ", err)
+		return "", ErrKeyAlreadyExists{err}
+	}
+
+	if shortkey != "" {
+		s.Log.Println("Key already exists")
+		return shortkey, nil
+	}
+
 	shortKey := generator.GenerateShortKey()
-	err := s.db.QueryRow("INSERT INTO shorturl (url,short) VALUES ($1,$2) RETURNING short_key", originalURL, testing.Short()).Scan(&shortKey)
+	err = s.db.QueryRow("INSERT INTO shorturl (url, short) VALUES ($1,$2) RETURNING short", originalURL, shortKey).Scan(&shortKey)
 	if err != nil {
+		s.Log.Println("Error inserting into database: ", err)
 		return "", ErrKeyAlreadyExists{err}
 	}
 
