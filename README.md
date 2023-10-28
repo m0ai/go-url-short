@@ -1,38 +1,61 @@
 # go-url-short
 
+This is a simple url shortener written in golang.
+It uses [pulumi](https://www.pulumi.com/) to deploy to AWS Lambda with API Gateway.
 
+# Pre-requisite
+
+- [docker](https://docs.docker.com/get-docker/)
+- [pulumi](https://www.pulumi.com/docs/get-started/install/)
+- [go>=1.20](https://golang.org/doc/install)
+    - [air](https://github.com/cosmtrek/air)
+- aws (only for deploy)
+
+## Feature
+
+- Support for multiple database storage options (in-memory, PostgreSQL).
+- Deploy to AWS Lambda using Pulumi
+- Integration of custom domains via ACM.
+- Encode IDs using a base-62
+
+## TODO
+
+- [ ] Snowflake ID Generator
+- [ ] Add tests
+- [ ] Support REST API Format
+- [ ] Add more database store (redis, mysql, etc)
+- [ ] Add Frontend Web UI
 
 # How to use it
-[demo & production site](https://go-url-short.herokuapp.com/)
 
-# How to deploy your own
+## Demo
+
+[WIP: demo site](https://s.m0ai.dev)
+
+### Create Short URL
+
+```shell
+curl -X POST \
+  http://localhost:8080/ \
+  -H 'Content-Type: application/json' \
+  -d '{ "url": "https://google.com" }'
+```
+
+### Get Short URL
+
+```shell
+curl -X GET \
+  https://localhost:8080/{shortId} \
+  -H 'Content-Type: application/json'
+```
+
+# How to deploy it (aws only)
 
 ```shell
 # clone the repo
-make deploy 
+make deploy
 
 # if you want to deploy to your own domain
+# Domain and ACM is required
 DOMAIN=yourdomain.com make deploy
-```
-
-
-
-## TODO
-- [ ] Deploy to AWS Lambda (API Gateway, Lambda, RDS)
-- [ ] Add tests
-- [x] 표준 프로젝트 구조로 수정
-- [x] postgresql 연결 및 store 구성
-- [x] 62 진법 적용 
-- [ ] 운영 배포 (도메인, 서버, DB)
-- [ ] Snowflake 적용
-
-```shell
-docker run --rm \
-    --name postgresql \
-    -p 5432:5432 \
-    -e POSTGRES_PASSWORD=mysecretpassword \
-    -e POSTGRES_USER="username" \
-    -e POSTGRES_DB=shorturl \
-     -v ./db/db.sql:/docker-entrypoint-initdb.d \
-    postgres
 ```
