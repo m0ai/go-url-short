@@ -5,6 +5,18 @@
 # How to use it
 [demo & production site](https://go-url-short.herokuapp.com/)
 
+# How to deploy your own
+
+```shell
+# clone the repo
+make deploy 
+
+# if you want to deploy to your own domain
+DOMAIN=yourdomain.com make deploy
+```
+
+
+
 ## TODO
 - [ ] Deploy to AWS Lambda (API Gateway, Lambda, RDS)
 - [ ] Add tests

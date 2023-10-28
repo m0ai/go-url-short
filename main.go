@@ -3,10 +3,12 @@ package main
 import (
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/cloudwatch"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/acm"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/apigateway"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/lambda"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"os"
 	"strings"
 )
 
@@ -84,6 +86,9 @@ func main() {
 			args,
 			pulumi.DependsOn([]pulumi.Resource{logPolicy, cloudwatch}), // Make sure the role policy is created first
 		)
+		if err != nil {
+			return err
+		}
 
 		// Create a New API Gateway
 		gw, err := apigateway.NewRestApi(ctx, nameGenerator("api-gw"), &apigateway.RestApiArgs{
@@ -162,17 +167,52 @@ func main() {
 		}
 
 		// create a new deployment
-		_, err = apigateway.NewDeployment(ctx, nameGenerator("deployment"), &apigateway.DeploymentArgs{
+		const stageName = "p"
+		gwDeployment, err := apigateway.NewDeployment(ctx, nameGenerator("deployment"), &apigateway.DeploymentArgs{
 			Description:      pulumi.String("Short URL Generate Service"),
 			RestApi:          gw.ID(),
 			StageDescription: pulumi.String("Production"),
-			StageName:        pulumi.String("p"),
+			StageName:        pulumi.String(stageName),
 		}, pulumi.DependsOn([]pulumi.Resource{apirsc, lfunc, permission}))
 		if err != nil {
 			return err
 		}
 
-		ctx.Export("url", pulumi.Sprintf("https://%s.execute-api.%s.amazonaws.com/p/", gw.ID(), region.Name))
+		// Create a new API Gateway Domain Name
+		domainName, found := os.LookupEnv("DOMAIN")
+		if found {
+			useast, err := aws.NewProvider(ctx, "aws-east-1", &aws.ProviderArgs{
+				Region: pulumi.String("us-east-1"),
+			})
+
+			validatedAcm, err := acm.LookupCertificate(ctx, &acm.LookupCertificateArgs{
+				Domain:   domainName,
+				Statuses: []string{"ISSUED"},
+			}, pulumi.Provider(useast))
+			if err != nil {
+				return err
+			}
+
+			gwDomain, err := apigateway.NewDomainName(ctx, nameGenerator("domain"), &apigateway.DomainNameArgs{
+				CertificateArn: pulumi.String(validatedAcm.Arn),
+				DomainName:     pulumi.String(domainName),
+			}, pulumi.DependsOn([]pulumi.Resource{gwDeployment}))
+			if err != nil {
+				return err
+			}
+			_, err = apigateway.NewBasePathMapping(ctx, nameGenerator("base-path"), &apigateway.BasePathMappingArgs{
+				RestApi:    gw.ID(),
+				StageName:  gwDeployment.StageName,
+				DomainName: gwDomain.DomainName,
+			}, pulumi.DependsOn([]pulumi.Resource{gwDeployment, gwDomain}))
+			if err != nil {
+				return err
+			}
+			ctx.Export("custom-url", pulumi.Sprintf("https://%s/", domainName))
+		}
+
+		ctx.Export("url", pulumi.Sprintf("https://%s.execute-api.%s.amazonaws.com/%s/", gw.ID(), region.Name, stageName))
+
 		return nil
 	},
 	)
