@@ -73,27 +73,32 @@ func NewHTTPServer(config *HTTPServerArgs) *http.Server {
 
 func (s *httpServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK, I'm alive!"))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"msg": "ok, I'm healthy"}`))
+
 }
 
 func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write([]byte("Method not allowed"))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"error": "Method not allowed"}`))
 		return
 	}
 
 	originalURL := r.FormValue("url")
 	if originalURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Bad request, missing url from form"))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"error": "Missing url"}`))
 		return
 	}
 
 	shortKey, err := s.Store.Set(originalURL)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal server error"))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"error": "Internal server error"}`))
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -109,25 +114,22 @@ func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 func (s *httpServer) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	shortURL := params["shortURL"]
-
 	if shortURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Bad request, missing shortURL"))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"error": "Missing shortURL"}`))
 		return
 	}
 
-	log.Println("shortURL: ", shortURL)
 	originalURL, err := s.Store.Get(shortURL)
-
 	if err != nil && errors.Is(store.ErrKeyNotFound, err) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Not found"))
-		return
 	}
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal server error, Could not get original URL"))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"error": "Internal server error"}`))
 		return
 	}
 
