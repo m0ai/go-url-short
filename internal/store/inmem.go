@@ -11,9 +11,11 @@ type InMemStore struct {
 }
 
 func NewInMemStore() *InMemStore {
+	l := log.New(log.Writer(), "INMEMSTORE:", log.LstdFlags)
+	log.Println("Creating new in-memory store")
 	return &InMemStore{
 		urls: make(map[string]string),
-		Log:  log.New(log.Writer(), "INMEMSTORE:", log.LstdFlags),
+		Log:  l,
 	}
 }
 func (s InMemStore) DbClose() {

@@ -15,22 +15,15 @@ type httpServer struct {
 	Store store.Store
 }
 
-func newHTTPServer(dbConfig *store.DatabaseConfig) *httpServer {
+func configureStore(dbConfig *store.DatabaseConfig) store.Store {
 	var st store.Store
-	httpLog := log.New(log.Writer(), "HTTPSERVER:", log.LstdFlags)
 
-	if dbConfig == nil {
+	if dbConfig.Name == "" {
 		st = store.NewInMemStore()
-		httpLog.Println("Using in-memory store")
 	} else {
 		st = store.NewPostgresStore(dbConfig)
-		httpLog.Println("Using postgres store")
 	}
-
-	return &httpServer{
-		Log:   httpLog,
-		Store: st,
-	}
+	return st
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -50,7 +43,11 @@ type HTTPServerArgs struct {
 }
 
 func NewHTTPServer(config *HTTPServerArgs) *http.Server {
-	s := newHTTPServer(config.DbConfig)
+	httpLog := log.New(log.Writer(), "HTTPSERVER:", log.LstdFlags)
+	s := &httpServer{
+		Log:   httpLog,
+		Store: configureStore(config.DbConfig),
+	}
 	r := mux.NewRouter()
 	r.Use(loggingMiddleware)
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +61,7 @@ func NewHTTPServer(config *HTTPServerArgs) *http.Server {
 
 	r.HandleFunc("/health", s.handleHealthCheck).Methods("GET")
 	r.HandleFunc("/shorten", s.handleShorten).Methods("POST")
-	r.HandleFunc("/s/{shortURL}", s.handleRedirect)
+	r.HandleFunc("/{shortURL}", s.handleRedirect)
 	return &http.Server{
 		Addr:    strings.Join([]string{config.Host, ":", config.Port}, ""),
 		Handler: r,
@@ -104,8 +101,13 @@ func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	// TODO: Delete Hardcoded URL
-	result := fmt.Sprintf("http://localhost:8080/s/%s", shortKey)
-
+	host := r.Host
+	if r.TLS != nil {
+		host = "https://" + host
+	} else {
+		host = "http://" + host
+	}
+	result := fmt.Sprintf("%s/%s", host, shortKey)
 	s.Log.Printf("Shortened URL %s from %s", result, originalURL)
 	// TODO return json
 	w.Write([]byte(result))

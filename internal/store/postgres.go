@@ -22,6 +22,8 @@ type PostgresStore struct {
 }
 
 func NewPostgresStore(config *DatabaseConfig) *PostgresStore {
+	l := log.New(log.Writer(), "POSTGRESSTORE:", log.LstdFlags)
+	l.Print("Creating new postgres store")
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s",
 		config.Host, config.Port, config.User, config.Password, config.Name)
 	db, err := sql.Open("postgres", connStr)
@@ -31,7 +33,7 @@ func NewPostgresStore(config *DatabaseConfig) *PostgresStore {
 	}
 
 	return &PostgresStore{
-		Log: log.New(log.Writer(), "POSTGRESSTORE:", log.LstdFlags),
+		Log: l,
 		db:  db,
 	}
 }
