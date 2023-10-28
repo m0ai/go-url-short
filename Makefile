@@ -1,11 +1,11 @@
-LAMBDA_OUTPUT_DIR=./tmp/lambda
+.PHONY: clean build build-for-lambda deploy
 
-.PHONY: clean build
+LAMBDA_OUTPUT_DIR=./tmp/lambda
 
 build: build-for-lambda
 
 clean:
-	rm -rf ./tmp
+	@rm -rf ./tmp
 
 build-for-lambda:
 	@mkdir -p $(LAMBDA_OUTPUT_DIR)
@@ -13,4 +13,5 @@ build-for-lambda:
 	zip -j ./tmp/handler.zip $(LAMBDA_OUTPUT_DIR)/handler
 
 deploy: clean build
+	echo "deploying .. ${DOMAIN}"
 	pulumi up --yes
