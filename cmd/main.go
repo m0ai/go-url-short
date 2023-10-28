@@ -14,10 +14,6 @@ import (
 	"time"
 )
 
-func init() {
-
-}
-
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -29,7 +25,11 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	s := server.NewHTTPServer(host, port, *createDBConfig())
+	s := server.NewHTTPServer(&server.HTTPServerArgs{
+		Host:     host,
+		Port:     port,
+		DbConfig: &store.DatabaseConfig{},
+	})
 	go func() {
 		fmt.Println("Server is listening on port: ", port)
 		if err = s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -50,7 +50,6 @@ func main() {
 
 func createDBConfig() *store.DatabaseConfig {
 	var dbConfig *store.DatabaseConfig
-
 	if host := os.Getenv("DB_HOST"); host != "" {
 		dbConfig = &store.DatabaseConfig{
 			Name:     os.Getenv("DB_NAME"),

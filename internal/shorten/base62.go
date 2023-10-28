@@ -20,7 +20,6 @@ const base62keyLength = len(base62charset)
 // ConvertRadix10 converts a integer from an base62 string
 func ConvertRadix10(shortKey string) (int64, error) {
 	var id int64 = 0
-
 	shortKey = reverse(shortKey)
 	for i, c := range shortKey {
 		index := strings.IndexRune(base62charset, c)

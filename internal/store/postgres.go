@@ -21,7 +21,7 @@ type PostgresStore struct {
 	Log *log.Logger
 }
 
-func NewPostgresStore(config DatabaseConfig) *PostgresStore {
+func NewPostgresStore(config *DatabaseConfig) *PostgresStore {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s",
 		config.Host, config.Port, config.User, config.Password, config.Name)
 	db, err := sql.Open("postgres", connStr)

@@ -7,6 +7,7 @@ import (
 	"go-url-short/internal/store"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type httpServer struct {
@@ -14,11 +15,11 @@ type httpServer struct {
 	Store store.Store
 }
 
-func newHTTPServer(dbConfig store.DatabaseConfig) *httpServer {
+func newHTTPServer(dbConfig *store.DatabaseConfig) *httpServer {
 	var st store.Store
-
 	httpLog := log.New(log.Writer(), "HTTPSERVER:", log.LstdFlags)
-	if dbConfig.Name == "" {
+
+	if dbConfig == nil {
 		st = store.NewInMemStore()
 		httpLog.Println("Using in-memory store")
 	} else {
@@ -41,17 +42,31 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func NewHTTPServer(add, port string, dbConfig store.DatabaseConfig) *http.Server {
-	s := newHTTPServer(dbConfig)
+type HTTPServerArgs struct {
+	Port     string                `default:"8080" envconfig:"PORT" required:"true" desc:"Port to listen on"`
+	Host     string                `default:"localhost" envconfig:"HOST" required:"true" desc:"Address to listen on"`
+	Prefix   string                `default:"/" envconfig:"PREFIX" required:"true" desc:"Prefix for all routes"`
+	DbConfig *store.DatabaseConfig `default:nil`
+}
 
+func NewHTTPServer(config *HTTPServerArgs) *http.Server {
+	s := newHTTPServer(config.DbConfig)
 	r := mux.NewRouter()
-	//r.Use(loggingMiddleware)
+	r.Use(loggingMiddleware)
+	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.Log.Println("Method not allowed", r.RequestURI)
+		http.Error(w, fmt.Sprintf("Method not allowed: %s", r.Method), http.StatusMethodNotAllowed)
+	})
+	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.Log.Println("Not found", r.RequestURI)
+		http.Error(w, fmt.Sprintf("Not found: %s", r.RequestURI), http.StatusNotFound)
+	})
+
 	r.HandleFunc("/health", s.handleHealthCheck).Methods("GET")
 	r.HandleFunc("/shorten", s.handleShorten).Methods("POST")
 	r.HandleFunc("/s/{shortURL}", s.handleRedirect)
-
 	return &http.Server{
-		Addr:    add + ":" + port,
+		Addr:    strings.Join([]string{config.Host, ":", config.Port}, ""),
 		Handler: r,
 	}
 }

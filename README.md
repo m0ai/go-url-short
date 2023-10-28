@@ -1,5 +1,10 @@
 # go-url-short
 
+
+
+# How to use it
+[demo & production site](https://go-url-short.herokuapp.com/)
+
 ## TODO
 - [ ] Deploy to AWS Lambda (API Gateway, Lambda, RDS)
 - [ ] Add tests
