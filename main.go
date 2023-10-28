@@ -76,6 +76,7 @@ func main() {
 			Handler: pulumi.String("handler"),
 			Role:    role.Arn,
 			Runtime: pulumi.String("go1.x"),
+			Timeout: pulumi.Int(3),
 			Code:    pulumi.NewFileArchive("./tmp/handler.zip"),
 		}
 
