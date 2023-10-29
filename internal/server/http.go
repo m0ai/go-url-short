@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -68,7 +69,7 @@ func NewHTTPServer(config *HTTPServerArgs) *http.Server {
 func (s *httpServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"msg": "ok, I'm healthy"}`))
+	w.Write([]byte(`{"message": "ok, I'm healthy"}`))
 }
 
 func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +77,7 @@ func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"error": "Method not allowed"}`))
+		json.NewEncoder(w).Encode(&ErrorResponse{r.Method + " Method not allowed"})
 		return
 	}
 
@@ -83,7 +85,7 @@ func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 	if originalURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"error": "Missing url"}`))
+		json.NewEncoder(w).Encode(&ErrorResponse{"Missing original url parmas"})
 		return
 	}
 
@@ -91,10 +93,9 @@ func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"error": "Internal server error"}`))
+		json.NewEncoder(w).Encode(&ErrorResponse{"Unhandled Error"})
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
 
 	// TODO: Delete Hardcoded URL
 	host := r.Host
@@ -105,8 +106,12 @@ func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 	}
 	result := fmt.Sprintf("%s/%s", host, shortKey)
 	s.Log.Printf("Generated short url %s form ", result, originalURL)
-	// TODO: return json
-	w.Write([]byte(result))
+	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(&ShortUrlResponse{
+		ShortUrl: result,
+		Url:      originalURL,
+	})
 }
 
 func (s *httpServer) handleRedirect(w http.ResponseWriter, r *http.Request) {
@@ -115,21 +120,22 @@ func (s *httpServer) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	if shortURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"msg": "Missing shortURL"}`))
+		// TODO: return json with marshal
+		json.NewEncoder(w).Encode(&ErrorResponse{"Missing short url"})
 		return
 	}
 
 	originalURL, err := s.Store.Get(shortURL)
 	if err != nil && errors.Is(store.ErrKeyNotFound, err) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"msg": "Not found"}`))
+		json.NewEncoder(w).Encode(&ErrorResponse{"Not Found key"})
 		return
 	}
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"msg": "Internal server error"}`))
+		json.NewEncoder(w).Encode(&ErrorResponse{"Unhandled Error"})
 		return
 	}
 
