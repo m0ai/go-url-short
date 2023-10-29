@@ -19,7 +19,7 @@ It uses [pulumi](https://www.pulumi.com/) to deploy to AWS Lambda with API Gatew
 - Encode IDs using a base-62
 - Rest API Format
 - Using [Snowflake ID](https://en.wikipedia.org/wiki/Snowflake_ID) Generator (Epoch + NodeID + Sequence)
-  - Epoch is 2023-10-29 00:00:00
+  - Epoch is `2023-10-29 00:00:00`
 
 ## TODO
 - [ ] Add e2e tests
