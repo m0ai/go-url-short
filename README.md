@@ -17,13 +17,12 @@ It uses [pulumi](https://www.pulumi.com/) to deploy to AWS Lambda with API Gatew
 - Deploy to AWS Lambda using Pulumi
 - Integration of custom domains via ACM.
 - Encode IDs using a base-62
+- Rest API Format
+- Using [Snowflake ID](https://en.wikipedia.org/wiki/Snowflake_ID) Generator (Epoch + NodeID + Sequence)
+  - Epoch is 2023-10-29 00:00:00
 
 ## TODO
-
-- [ ] Snowflake ID Generator
-- [ ] Add tests
-- [ ] Support REST API Format
-- [ ] Add more database store (redis, mysql, etc)
+- [ ] Add e2e tests
 - [ ] Add Frontend Web UI
 
 # How to use it
@@ -32,21 +31,26 @@ It uses [pulumi](https://www.pulumi.com/) to deploy to AWS Lambda with API Gatew
 
 [WIP: demo site](https://s.m0ai.dev)
 
-### Create Short URL
+### Generate Short URL
 
 ```shell
-curl -X POST \
-  http://localhost:8080/ \
-  -H 'Content-Type: application/json' \
-  -d '{ "url": "https://google.com" }'
+curl -X POST http://localhost:8080/shorten\?url\=https://google.com | jq
+  
+> {
+>   "short_url": "http://localhost:8080/AaecfgMo",
+>   "url": "https://google.com"
+> }
 ```
 
 ### Get Short URL
 
 ```shell
-curl -X GET \
-  https://localhost:8080/{shortId} \
-  -H 'Content-Type: application/json'
+curl -X GET https://localhost:8080/{shortId}
+
+> HTTP/1.1 308 Permanent Redirect
+> Content-Type: text/html; charset=utf-8
+> Location: https://google.com
+> Date: Sun, 29 Oct 2023 08:26:53 GMT
 ```
 
 # How to deploy it (aws only)
