@@ -13,5 +13,5 @@ build-for-lambda:
 	zip -j ./tmp/handler.zip $(LAMBDA_OUTPUT_DIR)/handler
 
 deploy: clean build
-	echo "deploying .. ${DOMAIN}"
+	@echo "deploying .. ${DOMAIN}"
 	pulumi up --yes
