@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/cloudwatch"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/acm"
@@ -71,6 +72,7 @@ func main() {
 			return err
 		}
 
+		godotenv.Load()
 		// Set arguments for constructing the Lambda Function resource.
 		args := &lambda.FunctionArgs{
 			Handler: pulumi.String("handler"),
@@ -78,6 +80,15 @@ func main() {
 			Runtime: pulumi.String("go1.x"),
 			Timeout: pulumi.Int(3),
 			Code:    pulumi.NewFileArchive("./tmp/handler.zip"),
+			Environment: &lambda.FunctionEnvironmentArgs{
+				Variables: pulumi.StringMap{
+					"DB_HOST":     pulumi.String(os.Getenv("DB_HOST")),
+					"DB_NAME":     pulumi.String(os.Getenv("DB_NAME")),
+					"DB_PORT":     pulumi.String(os.Getenv("DB_PORT")),
+					"DB_USER":     pulumi.String(os.Getenv("DB_USER")),
+					"DB_PASSWORD": pulumi.String(os.Getenv("DB_PASSWORD")),
+				},
+			},
 		}
 
 		// Create the lambda using the args.
