@@ -69,14 +69,13 @@ func NewHTTPServer(config *HTTPServerArgs) *http.Server {
 func (s *httpServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"message": "ok, I'm healthy"}`))
+	json.NewEncoder(w).Encode(&HealthResponse{"ok, I'm healthy"})
 }
 
 func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"error": "Method not allowed"}`))
 		json.NewEncoder(w).Encode(&ErrorResponse{r.Method + " Method not allowed"})
 		return
 	}
