@@ -19,7 +19,7 @@ It uses [pulumi](https://www.pulumi.com/) to deploy to AWS Lambda with API Gatew
 - Encode IDs using a base-62
 - Rest API Format
 - Using [Snowflake ID](https://en.wikipedia.org/wiki/Snowflake_ID) Generator (Epoch + NodeID + Sequence)
-  - Epoch is `2023-10-29 00:00:00`
+  - Epoch is 2023-10-29 00:00:00`
 
 ## TODO
 - [ ] Add e2e tests
@@ -28,16 +28,16 @@ It uses [pulumi](https://www.pulumi.com/) to deploy to AWS Lambda with API Gatew
 # How to use it
 
 ## Demo
-
-[WIP: demo site](https://s.m0ai.dev)
+Deployed to AWS Lambda with API Gateway.
+- https://s.m0ai.dev
 
 ### Generate Short URL
 
 ```shell
-curl -X POST http://localhost:8080/shorten\?url\=https://google.com | jq
+curl -X POST https://s.m0ai.dev/shorten\?url\=https://google.com | jq 
   
 > {
->   "short_url": "http://localhost:8080/AaecfgMo",
+>   "short_url": "https://s.m0ai.dev/AaecfgMo",
 >   "url": "https://google.com"
 > }
 ```
@@ -45,7 +45,7 @@ curl -X POST http://localhost:8080/shorten\?url\=https://google.com | jq
 ### Get Short URL
 
 ```shell
-curl -X GET https://localhost:8080/{shortId}
+curl -X GET https://s.m0ai.dev/AaecfgMo
 
 > HTTP/1.1 308 Permanent Redirect
 > Content-Type: text/html; charset=utf-8
