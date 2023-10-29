@@ -120,7 +120,6 @@ func (s *httpServer) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	if shortURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
-		// TODO: return json with marshal
 		json.NewEncoder(w).Encode(&ErrorResponse{"Missing short url"})
 		return
 	}
@@ -128,7 +127,8 @@ func (s *httpServer) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	originalURL, err := s.Store.Get(shortURL)
 	if err != nil && errors.Is(store.ErrKeyNotFound, err) {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(&ErrorResponse{"Not Found key"})
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(&ErrorResponse{"Not Found key(" + shortURL + ")"})
 		return
 	}
 
