@@ -16,7 +16,6 @@ CREATE TABLE shorturl.shorturl
 (
     id         SERIAL PRIMARY KEY,
     url        VARCHAR(1024) NOT NULL,
-    short      VARCHAR(16)   NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -28,3 +27,8 @@ ALTER TABLE shorturl OWNER TO shorturl_app;
 
 -- truncate table
 -- truncate table shorturl;
+select current_database();
+set search_path to shorturl, public;
+select current_database();
+-- show shorturl table owner
+select * from shorturl;

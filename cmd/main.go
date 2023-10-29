@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/joho/godotenv"
+	"github.com/kelseyhightower/envconfig"
 	"go-url-short/internal/server"
 	"go-url-short/internal/store"
 	"log"
@@ -21,14 +22,17 @@ func main() {
 	}
 
 	host, port := os.Getenv("HOST"), os.Getenv("PORT")
+	var dbConfig store.DatabaseConfig
+	if err := envconfig.Process("DB", &dbConfig); err != nil {
+		log.Fatalln("Error processing database config: ", err)
+	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-
 	s := server.NewHTTPServer(&server.HTTPServerArgs{
 		Host:     host,
 		Port:     port,
-		DbConfig: &store.DatabaseConfig{},
+		DbConfig: &dbConfig,
 	})
 	go func() {
 		fmt.Println("Server is listening on port: ", port)

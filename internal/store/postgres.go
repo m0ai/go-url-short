@@ -9,11 +9,11 @@ import (
 )
 
 type DatabaseConfig struct {
-	Name     string
-	Host     string
-	Port     int
-	User     string
-	Password string
+	Name     string `default:"shorturl"`
+	Host     string `default:""`
+	Port     int    `default:""`
+	User     string `default:""`
+	Password string `default:""`
 }
 
 type PostgresStore struct {
@@ -67,18 +67,22 @@ func (s PostgresStore) Set(originalURL string) (string, error) {
 	// Check if the key already exists using orignalURL
 	var k int64
 	err := s.db.QueryRow("SELECT id FROM shorturl WHERE url = $1 LIMIT 1", originalURL).Scan(&k)
-
 	if err != nil && err != sql.ErrNoRows {
 		s.Log.Println("Error checking if key exists: ", err)
 		return "", ErrKeyAlreadyExists
 	}
 
 	if k != 0 {
-		s.Log.Println("Key already exists", k)
 		return generator.ConvertRadix62(k), nil
 	}
 
-	err = s.db.QueryRow("INSERT INTO shorturl (url) VALUES ($1) RETURNING id", originalURL).Scan(&k)
+	newId, err := generator.GenerateSnowFlakeKey()
+	if err != nil {
+		s.Log.Println("Error generating snowflake key: ", err)
+		return "", err
+	}
+
+	err = s.db.QueryRow("INSERT INTO shorturl (id, url) VALUES ($1,$2) RETURNING id", newId, originalURL).Scan(&k)
 	if err != nil {
 		s.Log.Println("Error inserting into database: ", err)
 		return "", ErrKeyAlreadyExists

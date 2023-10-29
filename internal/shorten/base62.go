@@ -41,7 +41,6 @@ func ConvertRadix62(id int64) string {
 	for quotient > 0 {
 		quotient, remainder = divmod(quotient, int64(base62keyLength))
 		ch := base62charset[remainder]
-		fmt.Println(remainder, ch)
 		result = append(result, string(ch))
 	}
 

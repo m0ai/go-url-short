@@ -18,7 +18,7 @@ type httpServer struct {
 func configureStore(dbConfig *store.DatabaseConfig) store.Store {
 	var st store.Store
 
-	if dbConfig.Name == "" {
+	if dbConfig.Host == "" {
 		st = store.NewInMemStore()
 	} else {
 		st = store.NewPostgresStore(dbConfig)
@@ -26,20 +26,11 @@ func configureStore(dbConfig *store.DatabaseConfig) store.Store {
 	return st
 }
 
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Do stuff here
-		log.Println(r.RequestURI)
-		// Call the next handler, which can be another middleware in the chain, or the final handler.
-		next.ServeHTTP(w, r)
-	})
-}
-
 type HTTPServerArgs struct {
-	Port     string                `default:"8080" envconfig:"PORT" required:"true" desc:"Port to listen on"`
-	Host     string                `default:"localhost" envconfig:"HOST" required:"true" desc:"Address to listen on"`
-	Prefix   string                `default:"/" envconfig:"PREFIX" required:"true" desc:"Prefix for all routes"`
-	DbConfig *store.DatabaseConfig `default:nil`
+	Port     string `default:"8080" envconfig:"PORT" required:"true" desc:"Port to listen on"`
+	Host     string `default:"localhost" envconfig:"HOST" required:"true" desc:"Address to listen on"`
+	Prefix   string `default:"/" envconfig:"PREFIX" required:"true" desc:"Prefix for all routes"`
+	DbConfig *store.DatabaseConfig
 }
 
 func NewHTTPServer(config *HTTPServerArgs) *http.Server {
@@ -48,8 +39,14 @@ func NewHTTPServer(config *HTTPServerArgs) *http.Server {
 		Log:   httpLog,
 		Store: configureStore(config.DbConfig),
 	}
+
 	r := mux.NewRouter()
-	r.Use(loggingMiddleware)
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			httpLog.Println(r.RequestURI)
+			next.ServeHTTP(w, r)
+		})
+	})
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.Log.Println("Method not allowed", r.RequestURI)
 		http.Error(w, fmt.Sprintf("Method not allowed: %s", r.Method), http.StatusMethodNotAllowed)
@@ -72,7 +69,6 @@ func (s *httpServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"msg": "ok, I'm healthy"}`))
-
 }
 
 func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
@@ -108,8 +104,8 @@ func (s *httpServer) handleShorten(w http.ResponseWriter, r *http.Request) {
 		host = "http://" + host
 	}
 	result := fmt.Sprintf("%s/%s", host, shortKey)
-	s.Log.Printf("Shortened URL %s from %s", result, originalURL)
-	// TODO return json
+	s.Log.Printf("Generated short url %s form ", result, originalURL)
+	// TODO: return json
 	w.Write([]byte(result))
 }
 
@@ -119,19 +115,21 @@ func (s *httpServer) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	if shortURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"error": "Missing shortURL"}`))
+		w.Write([]byte(`{"msg": "Missing shortURL"}`))
 		return
 	}
 
 	originalURL, err := s.Store.Get(shortURL)
 	if err != nil && errors.Is(store.ErrKeyNotFound, err) {
 		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"msg": "Not found"}`))
+		return
 	}
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"error": "Internal server error"}`))
+		w.Write([]byte(`{"msg": "Internal server error"}`))
 		return
 	}
 
